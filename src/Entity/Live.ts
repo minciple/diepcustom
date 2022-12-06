@@ -34,6 +34,10 @@ export default class LivingEntity extends ObjectEntity {
 
     /** The points a player is awarded when it kills this entity. */
     public scoreReward = 0;
+
+    /** This defines if the entity is on godmode (ignoring damage and knockback is ignored). */
+    public godmode = false;
+
     /** Amount of health gained per tick. */
     protected regenPerTick = 0;
     /** The damage this entity can emit onto another per tick. */
@@ -48,7 +52,7 @@ export default class LivingEntity extends ObjectEntity {
     protected damageReduction = 1;
 
     /** Extends ObjectEntity.destroy() - diminishes health as well. */
-    public destroy(animate=true) {
+    public destroy(animate = true) {
         if (this.hash === 0) return; // already deleted;
 
         if (animate) this.health.health = 0;
@@ -82,27 +86,27 @@ export default class LivingEntity extends ObjectEntity {
             dF2 *= 1 - ratio;
         }
 
-        if (entity1.style.values.styleFlags & StyleFlags.invincibility) dF2 = 0;
-        if (entity2.style.values.styleFlags & StyleFlags.invincibility) dF1 = 0;
+        if (entity1.style.values.styleFlags & StyleFlags.invincibility || entity1.godmode) dF2 = 0;
+        if (entity2.style.values.styleFlags & StyleFlags.invincibility || entity2.godmode) dF1 = 0;
 
         // Plays the animation damage for entity 2
         if (entity2.lastDamageAnimationTick !== game.tick && !(entity2.style.values.styleFlags & StyleFlags.noDmgIndicator)) {
             entity2.style.styleFlags ^= StyleFlags.damage;
             entity2.lastDamageAnimationTick = game.tick;
         }
-        
+
         if (dF1 !== 0) {
             if (entity2.lastDamageTick !== game.tick && entity2 instanceof TankBody && entity2.definition.flags.invisibility && entity2.style.values.opacity < visibilityRateDamage) entity2.style.opacity += visibilityRateDamage;
             entity2.lastDamageTick = game.tick;
             entity2.health.health -= dF1;
         }
-        
+
         // Plays the animation damage for entity 1
         if (entity1.lastDamageAnimationTick !== game.tick && !(entity1.style.values.styleFlags & StyleFlags.noDmgIndicator)) {
             entity1.style.styleFlags ^= StyleFlags.damage;
             entity1.lastDamageAnimationTick = game.tick;
         }
-        
+
         if (dF2 !== 0) {
             if (entity1.lastDamageTick !== game.tick && entity1 instanceof TankBody && entity1.definition.flags.invisibility && entity1.style.values.opacity < visibilityRateDamage) entity1.style.opacity += visibilityRateDamage;
             entity1.lastDamageTick = game.tick;
@@ -137,10 +141,10 @@ export default class LivingEntity extends ObjectEntity {
     }
 
     /** Called when the entity kills another via collision. */
-    public onKill(entity: LivingEntity) {}
+    public onKill(entity: LivingEntity) { }
 
     /** Called when the entity is killed via collision */
-    public onDeath(killer: LivingEntity) {}
+    public onDeath(killer: LivingEntity) { }
 
     /** Runs at the end of each tick. Will apply the damage then. */
     public applyPhysics() {
@@ -168,6 +172,11 @@ export default class LivingEntity extends ObjectEntity {
         }
 
         this.damagedEntities = [];
+    }
+
+    protected receiveKnockback(entity: ObjectEntity) {
+        if (this.godmode) return;
+        super.receiveKnockback(entity);
     }
 
     public tick(tick: number) {

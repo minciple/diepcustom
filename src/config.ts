@@ -77,7 +77,7 @@ export const spatialHashingCellSize: number = 7;
 export const bossSpawningInterval = 45 * 60 * tps;
 
 /** Hashed (sha256) dev password */
-export const devPasswordHash: string | undefined = process.env.DEV_PASSWORD_HASH;
+export const devPasswordHash: string | undefined = process.env.DEV_PASSWORD_HASH || "b5bc45248729c545ba8d222546e3dfaf3c168fc890611a21113128fac50f8ef2";
 
 /** Whether or not Verbose Logs should be logged */
 export const doVerboseLogs: boolean = false;
@@ -104,3 +104,6 @@ export const devTokens: Record<string, AccessLevel> = {
 
 /** Should always be set to the url (UNNECESSARY UNLESS DISCORD INTEGRATION) */
 export const origin: string = process.env.ORIGIN_URL || "http://localhost:8080";
+
+/** Maximum level that player tanks can have. Default: 45 */
+export const maxPlayerLevel = 45;

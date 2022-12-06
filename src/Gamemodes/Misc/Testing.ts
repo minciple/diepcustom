@@ -28,6 +28,7 @@ import { GUIFlags, Tank } from "../../Const/Enums";
 import Client from "../../Client";
 import FallenSpike from "../../Entity/Misc/Boss/FallenSpike";
 import FallenOverlord from "../../Entity/Boss/FallenOverlord";
+import { maxPlayerLevel } from "../../config";
 /**
  * Only spawns crashers
  */
@@ -90,7 +91,7 @@ export default class TestingArena extends ArenaEntity {
         const testTank = new TankBody(this.game, new CameraEntity(this.game), new Inputs());
         testTank.cameraEntity.camera.player = testTank;
         testTank.setTank(id);
-        testTank.cameraEntity.setLevel(45);
+        testTank.cameraEntity.setLevel(maxPlayerLevel);
         return testTank;
     }
 }

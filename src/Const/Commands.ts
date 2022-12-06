@@ -1,5 +1,5 @@
 import Client from "../Client"
-import { AccessLevel } from "../config";
+import { AccessLevel, maxPlayerLevel } from "../config";
 import AbstractBoss from "../Entity/Boss/AbstractBoss";
 import Defender from "../Entity/Boss/Defender";
 import FallenBooster from "../Entity/Boss/FallenBooster";
@@ -34,8 +34,8 @@ export enum CommandID {
     gameAddUpgradePoints = "game_add_upgrade_points",
     gameTeleport = "game_teleport",
     gameClaim = "game_claim",
-    adminGodmode = "admin_godmode",
-    adminSummon= "admin_summon",
+    gameGodmode = "game_godmode",
+    adminSummon = "admin_summon",
     adminKillAll = "admin_kill_all",
     adminKillEntity = "admin_kill_entity",
     adminCloseArena = "admin_close_arena"
@@ -46,10 +46,11 @@ export interface CommandDefinition {
     usage?: string,
     description?: string,
     permissionLevel: AccessLevel,
+    isCheat: boolean
 }
 
 export interface CommandCallback {
-    (client: Client, ...args: string[]): void 
+    (client: Client, ...args: string[]): string | void
 }
 
 export const commandDefinitions = {
@@ -57,76 +58,90 @@ export const commandDefinitions = {
         id: CommandID.gameSetTank,
         usage: "[tank]",
         description: "Changes your tank to the given class",
-        permissionLevel: AccessLevel.BetaAccess
+        permissionLevel: AccessLevel.BetaAccess,
+        isCheat: true
     },
     game_set_level: {
         id: CommandID.gameSetLevel,
         usage: "[level]",
         description: "Changes your level to the given whole number",
-        permissionLevel: AccessLevel.BetaAccess
+        permissionLevel: AccessLevel.BetaAccess,
+        isCheat: true
     },
     game_set_score: {
         id: CommandID.gameSetScore,
         usage: "[score]",
         description: "Changes your score to the given whole number",
-        permissionLevel: AccessLevel.BetaAccess
+        permissionLevel: AccessLevel.BetaAccess,
+        isCheat: true
     },
     game_set_stat: {
         id: CommandID.gameSetStat,
         usage: "[stat num] [points]",
         description: "Set the value of one of your statuses. Values can be greater than the capacity. [stat num] is equivalent to the number that appears in the UI",
-        permissionLevel: AccessLevel.BetaAccess
+        permissionLevel: AccessLevel.FullAccess,
+        isCheat: true
     },
     game_set_stat_max: {
         id: CommandID.gameSetStatMax,
         usage: "[stat num] [max]",
         description: "Set the max value of one of your statuses. [stat num] is equivalent to the number that appears in the UI",
-        permissionLevel: AccessLevel.BetaAccess
+        permissionLevel: AccessLevel.FullAccess,
+        isCheat: true
     },
     game_add_upgrade_points: {
         id: CommandID.gameAddUpgradePoints,
         usage: "[points]",
         description: "Add upgrade points",
-        permissionLevel: AccessLevel.BetaAccess
+        permissionLevel: AccessLevel.FullAccess,
+        isCheat: true
     },
     game_teleport: {
         id: CommandID.gameTeleport,
         usage: "[x] [y]",
         description: "Teleports you to the given position",
-        permissionLevel: AccessLevel.BetaAccess
+        permissionLevel: AccessLevel.FullAccess,
+        isCheat: true
     },
     game_claim: {
         id: CommandID.gameClaim,
         usage: "[entityName]",
         description: "Attempts claiming an entity of the given type",
-        permissionLevel: AccessLevel.BetaAccess
+        permissionLevel: AccessLevel.BetaAccess,
+        isCheat: false
     },
-    admin_godmode: {
-        id: CommandID.adminGodmode,
-        description: "Toggles godmode",
-        permissionLevel: AccessLevel.FullAccess
+    game_godmode: {
+        id: CommandID.gameGodmode,
+        usage: "[?value]",
+        description: "Set the godemode. Toggles if [value] is not specified",
+        permissionLevel: AccessLevel.FullAccess,
+        isCheat: true
     },
     admin_summon: {
         id: CommandID.adminSummon,
         usage: "[entityName] [?count] [?x] [?y]",
         description: "Spawns entities at a certain location",
-        permissionLevel: AccessLevel.FullAccess
+        permissionLevel: AccessLevel.FullAccess,
+        isCheat: false
     },
     admin_kill_all: {
         id: CommandID.adminKillAll,
         description: "Kills all entities in the arena",
-        permissionLevel: AccessLevel.FullAccess
+        permissionLevel: AccessLevel.FullAccess,
+        isCheat: false
     },
     admin_kill_entity: {
         id: CommandID.adminKillEntity,
         usage: "[entityName]",
         description: "Kills all entities of the given type (might include self)",
-        permissionLevel: AccessLevel.FullAccess
+        permissionLevel: AccessLevel.FullAccess,
+        isCheat: false
     },
     admin_close_arena: {
         id: CommandID.adminCloseArena,
         description: "Closes the current arena",
-        permissionLevel: AccessLevel.FullAccess
+        permissionLevel: AccessLevel.FullAccess,
+        isCheat: false
     }
 } as Record<CommandID, CommandDefinition>
 
@@ -135,13 +150,15 @@ export const commandCallbacks = {
         const tankDef = getTankByName(tankNameArg);
         const player = client.camera?.camera.player;
         if (!tankDef || !Entity.exists(player) || !(player instanceof TankBody)) return;
+        if (tankDef.flags.devOnly && client.accessLevel !== AccessLevel.FullAccess) return;
         player.setTank(tankDef.id);
     },
     game_set_level: (client: Client, levelArg: string) => {
         const level = parseInt(levelArg);
         const player = client.camera?.camera.player;
         if (isNaN(level) || !Entity.exists(player) || !(player instanceof TankBody)) return;
-        client.camera?.setLevel(level);
+        const finalLevel = client.accessLevel == AccessLevel.FullAccess ? level : Math.max(maxPlayerLevel, level);
+        client.camera?.setLevel(finalLevel);
     },
     game_set_score: (client: Client, scoreArg: string) => {
         const score = parseInt(scoreArg);
@@ -187,11 +204,11 @@ export const commandCallbacks = {
     },
     game_claim: (client: Client, entityArg: string) => {
         const TEntity = new Map([
-          ["ArenaCloser", ArenaCloser],
-          ["Dominator", Dominator],
-          ["Shape", AbstractShape],
-          ["Boss", AbstractBoss],
-          ["AutoTurret", AutoTurret]
+            ["ArenaCloser", ArenaCloser],
+            ["Dominator", Dominator],
+            ["Shape", AbstractShape],
+            ["Boss", AbstractBoss],
+            ["AutoTurret", AutoTurret]
         ] as [string, typeof ObjectEntity][]).get(entityArg)
 
         if (!TEntity || !client.camera?.game.entities.AIs.length) return;
@@ -203,14 +220,12 @@ export const commandCallbacks = {
             return;
         }
     },
-    admin_godmode: (client: Client) => {
-        if(client.camera?.camera.player?.style?.styleFlags) {
-            if(client.camera.camera.player.style.styleFlags & StyleFlags.invincibility) {
-                client.camera.camera.player.style.styleFlags ^= StyleFlags.invincibility;
-            } else {
-                client.camera.camera.player.style.styleFlags |= StyleFlags.invincibility;
-            }
-        }
+    game_godmode: (client: Client, valueArg: string) => {
+        const player = client.camera?.camera.player;
+        if (!Entity.exists(player) || !(player instanceof LivingEntity)) return;
+        console.log(valueArg);
+        const value = valueArg ? valueArg == 'true' : !player.godmode;
+        client.setGodMode(value);
     },
     admin_summon: (client: Client, entityArg: string, countArg?: string, xArg?: string, yArg?: string) => {
         const count = countArg ? parseInt(countArg) : 1;
@@ -244,31 +259,31 @@ export const commandCallbacks = {
     },
     admin_kill_all: (client: Client) => {
         const game = client.camera?.game;
-        if(!game) return;
+        if (!game) return;
         for (let id = 0; id <= game.entities.lastId; ++id) {
-			const entity = game.entities.inner[id];
-			if (Entity.exists(entity) && entity instanceof LivingEntity && entity !== client.camera?.camera.player) entity.health.health = 0;
-		}
+            const entity = game.entities.inner[id];
+            if (Entity.exists(entity) && entity instanceof LivingEntity && entity !== client.camera?.camera.player) entity.health.health = 0;
+        }
     },
     admin_close_arena: (client: Client) => {
         client?.camera?.game.arena.close();
     },
     admin_kill_entity: (client: Client, entityArg: string) => {
         const TEntity = new Map([
-          ["ArenaCloser", ArenaCloser],
-          ["Dominator", Dominator],
-          ["Bullet", Bullet],
-          ["Tank", TankBody],
-          ["Shape", AbstractShape],
-          ["Boss", AbstractBoss]
+            ["ArenaCloser", ArenaCloser],
+            ["Dominator", Dominator],
+            ["Bullet", Bullet],
+            ["Tank", TankBody],
+            ["Shape", AbstractShape],
+            ["Boss", AbstractBoss]
         ] as [string, typeof LivingEntity][]).get(entityArg);
         const game = client.camera?.game;
         if (!TEntity || !game) return;
 
         for (let id = 0; id <= game.entities.lastId; ++id) {
-			const entity = game.entities.inner[id];
-			if (Entity.exists(entity) && entity instanceof TEntity) entity.health.health = 0;
-		}
+            const entity = game.entities.inner[id];
+            if (Entity.exists(entity) && entity instanceof TEntity) entity.health.health = 0;
+        }
     }
 } as Record<CommandID, CommandCallback>
 
@@ -281,5 +296,12 @@ export const executeCommand = (client: Client, cmd: string, args: string[]) => {
         return saveToVLog(`${client.toString()} tried to run the command ${cmd} with a permission that was too low`);
     }
 
-    commandCallbacks[cmd as CommandID](client, ...args);
+    const commandDefinition = commandDefinitions[cmd as CommandID];
+    if (commandDefinition.isCheat) client.setDevCheatsUsed(true);
+
+    const response = commandCallbacks[cmd as CommandID](client, ...args);
+    if (response) {
+        client.notify(response, 0x00ff00, 5000, `commandfallback_${commandDefinition.id}`);
+    }
+
 }

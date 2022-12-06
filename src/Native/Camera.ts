@@ -26,6 +26,7 @@ import { getTankById } from "../Const/TankDefinitions";
 import { removeFast } from "../util";
 
 import * as Fields from "../Const/Fields";
+import { maxPlayerLevel } from "../config";
 
 /**
  * Represents any entity with a camera field group.
@@ -42,8 +43,8 @@ export class CameraEntity extends Entity {
         const previousLevel = this.camera.values.level;
         this.camera.level = level;
         this.sizeFactor = Math.pow(1.01, level - 1);
-        this.camera.levelbarMax = level < 45 ? 1 : 0; // quick hack, not correct values
-        if (level <= 45) {
+        this.camera.levelbarMax = level < maxPlayerLevel ? 1 : 0; // quick hack, not correct values
+        if (level <= maxPlayerLevel) {
             this.camera.scorebar = levelToScore(level);
 
             const player = this.camera.values.player;
