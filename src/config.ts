@@ -105,5 +105,5 @@ export const devTokens: Record<string, AccessLevel> = {
 /** Should always be set to the url (UNNECESSARY UNLESS DISCORD INTEGRATION) */
 export const origin: string = process.env.ORIGIN_URL || "http://localhost:8080";
 
-/** Maximum level that player tanks can have. Default: 45 */
+/** Maximum level that player tanks can normally have. Default: 45 */
 export const maxPlayerLevel = 45;

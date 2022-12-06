@@ -223,7 +223,6 @@ export const commandCallbacks = {
     game_godmode: (client: Client, valueArg: string) => {
         const player = client.camera?.camera.player;
         if (!Entity.exists(player) || !(player instanceof LivingEntity)) return;
-        console.log(valueArg);
         const value = valueArg ? valueArg == 'true' : !player.godmode;
         client.setGodMode(value);
     },
