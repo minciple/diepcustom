@@ -76,3 +76,7 @@ export const saveToLog = (title: string, description: string, color: number) => 
 export const saveToVLog = (text: string) => {
    if (doVerboseLogs) console.log("[v] " + text);
 }
+
+export const lerp = (start: number, end: number, t: number) => {
+    return (1-t)*start+t*end
+  }

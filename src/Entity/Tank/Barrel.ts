@@ -20,6 +20,7 @@ import * as util from "../../util";
 
 import Bullet from "./Projectile/Bullet";
 import LifestealBullet from "./Projectile/LifestealBullet";
+import ExplosiveBullet from "./Projectile/ExplosiveBullet";
 import Trap from "./Projectile/Trap";
 import Drone from "./Projectile/Drone";
 import Rocket from "./Projectile/Rocket";
@@ -212,6 +213,12 @@ export default class Barrel extends ObjectEntity {
                     
                     break;
                 }
+                
+            case "explosivebullet": {
+                const bullet = new ExplosiveBullet(this, this.tank, tankDefinition, angle);
+                
+                break;
+            }
             default:
                 util.log('Ignoring attempt to spawn projectile of type ' + this.definition.bullet.type);
                 break;
