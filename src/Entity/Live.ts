@@ -22,7 +22,7 @@ import ObjectEntity from "./Object";
 import TankBody from "./Tank/TankBody";
 
 import { visibilityRateDamage } from "../Const/TankDefinitions";
-import { StyleFlags } from "../Const/Enums";
+import { StyleFlags, Tank } from "../Const/Enums";
 import { HealthGroup } from "../Native/FieldGroups";
 
 /**
@@ -48,7 +48,7 @@ export default class LivingEntity extends ObjectEntity {
     public damageReduction = 1;
 
     /** Extends ObjectEntity.destroy() - diminishes health as well. */
-    public destroy(animate=true) {
+    public destroy(animate = true) {
         if (this.hash === 0) return; // already deleted;
 
         if (animate) this.healthData.health = 0;
@@ -88,26 +88,30 @@ export default class LivingEntity extends ObjectEntity {
             entity2.styleData.flags ^= StyleFlags.hasBeenDamaged;
             entity2.lastDamageAnimationTick = game.tick;
         }
-        
+
         if (dF1 !== 0) {
             if (entity2.lastDamageTick !== game.tick && entity2 instanceof TankBody && entity2.definition.flags.invisibility && entity2.styleData.values.opacity < visibilityRateDamage) entity2.styleData.opacity += visibilityRateDamage;
             entity2.lastDamageTick = game.tick;
             entity2.healthData.health -= dF1;
         }
-        
+
         // Plays the animation damage for entity 1
         if (entity1.lastDamageAnimationTick !== game.tick && !(entity1.styleData.values.flags & StyleFlags.hasNoDmgIndicator)) {
             entity1.styleData.flags ^= StyleFlags.hasBeenDamaged;
             entity1.lastDamageAnimationTick = game.tick;
         }
-        
+
         if (dF2 !== 0) {
             if (entity1.lastDamageTick !== game.tick && entity1 instanceof TankBody && entity1.definition.flags.invisibility && entity1.styleData.values.opacity < visibilityRateDamage) entity1.styleData.opacity += visibilityRateDamage;
             entity1.lastDamageTick = game.tick;
             entity1.healthData.health -= dF2;
         }
+
         entity1.damagedEntities.push(entity2)
         entity2.damagedEntities.push(entity1)
+
+        if (entity1 instanceof LivingEntity) entity1.onDamage(entity2, dF1);
+        if (entity2 instanceof LivingEntity) entity2.onDamage(entity1, dF2);
 
         if (entity1.healthData.values.health < -0.0001) {
             util.warn("Health is below 0. Something in damage messed up]: ", entity1.healthData.health, entity2.healthData.health, ratio, dF1, dF2);
@@ -132,13 +136,17 @@ export default class LivingEntity extends ObjectEntity {
             if (killer instanceof LivingEntity) entity2.onDeath(killer);
             entity1.onKill(entity2);
         }
+
     }
 
     /** Called when the entity kills another via collision. */
-    public onKill(entity: LivingEntity) {}
+    public onKill(entity: LivingEntity) { }
 
     /** Called when the entity is killed via collision */
-    public onDeath(killer: LivingEntity) {}
+    public onDeath(killer: LivingEntity) { }
+
+    /** MOD: Called when damage is dealt */
+    public onDamage(entity: LivingEntity, damageDealt: number) { }
 
     /** Runs at the end of each tick. Will apply the damage then. */
     public applyPhysics() {
@@ -153,11 +161,14 @@ export default class LivingEntity extends ObjectEntity {
 
         // Regeneration
         if (this.healthData.values.health < this.healthData.values.maxHealth) {
-            this.healthData.health += this.regenPerTick;
+            if (!(this instanceof TankBody && this.definition.id == Tank.Vampire)) {
 
-            // Regen boost after 30s
-            if (this.game.tick - this.lastDamageTick >= 750) {
-                this.healthData.health += this.healthData.values.maxHealth / 250;
+                this.healthData.health += this.regenPerTick;
+
+                // Regen boost after 30s
+                if (this.game.tick - this.lastDamageTick >= 750) {
+                    this.healthData.health += this.healthData.values.maxHealth / 250;
+                }
             }
         }
 
