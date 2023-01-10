@@ -1,26 +1,20 @@
 @echo off
 : Check for node and npm installation
-WHERE node>nul || GOTO install_nodejs
-WHERE npm>nul || GOTO install_npm
-
-node autom/installer.js
-
-GOTO end_succ
-
-:install_nodejs
-echo [ERROR] NODE.JS NOT FOUND. Please install it: https://nodejs.org/en/
-GOTO end_err
-
-:install_npm
-echo [ERROR] NPM NOT FOUND. Please install it.
-GOTO end_err
-
-:end_err
-PAUSE
-GOTO end
-
-:end_succ
-TIMEOUT 15
-GOTO end
-
-:end
+where /q node
+IF ERRORLEVEL 1 (
+	where /q npm
+	IF ERRORLEVEL 1 (
+		ECHO [ERROR] NODE.JS AND NPM NOT FOUND. Please install npm and node.js: https://nodejs.org/en/
+	) ELSE (
+		ECHO [ERROR] NODE.JS NOT FOUND. Please install it: https://nodejs.org/en/
+	)
+	TIMEOUT 15
+) ELSE (
+	where /q npm
+	IF ERRORLEVEL 1 (
+		node autom/installer.js
+	) ELSE (
+		ECHO [ERROR] NPM NOT FOUND. Please install it.
+		TIMEOUT 15
+	)
+)
